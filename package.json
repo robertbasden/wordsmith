@@ -1,6 +1,7 @@
 {
   "name": "wordsmith",
   "version": "0.1.0",
+  "homepage": "https://robertbasden.github.io/wordsmith",
   "private": true,
   "dependencies": {
     "glamor": "^2.20.40",
