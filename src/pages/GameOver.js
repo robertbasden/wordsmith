@@ -8,7 +8,7 @@ const GameOver = ({tryAgainClicked, message}) => {
       <PageTitle>Whoops!</PageTitle>
       <PageText>{message}</PageText>
       <ButtonSet>
-        <Button type='success' onClick={tryAgainClicked}>Try again!</Button>
+        <Button type='success' onClick={tryAgainClicked}>Start again?</Button>
       </ButtonSet>
     </div>
   );
