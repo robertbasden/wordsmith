@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { createStore, applyMiddleware } from 'redux';
+import { createStore, applyMiddleware, combineReducers } from 'redux';
 import logger from 'redux-logger';
 import { Provider, connect } from 'react-redux';
 import { getNextWord }from './wordService';
@@ -14,11 +14,14 @@ import { clamp } from './utils';
 
 //Actions
 const START_GAME = 'START_GAME';
+const NEXT_WORD = 'NEXT_WORD';
+const TO_TITLE = 'TO_TITLE';
+const GAME_OVER = 'GAME_OVER';
+
 const NEW_WORD = 'NEW_WORD';
 const CHOOSE_LETTER = 'CHOOSE_LETTER';
 const SHOW_HINT = 'SHOW_HINT';
 const UNDO = 'UNDO';
-const DONE = 'DONE';
 const CLEAR_LETTERS = 'CLEAR_LETTERS';
 const SET_PERCENTAGE_ELAPSED = 'SET_PERCENTAGE_ELAPSED';
 
@@ -27,6 +30,25 @@ const SET_PERCENTAGE_ELAPSED = 'SET_PERCENTAGE_ELAPSED';
 const startGame = () => {
   return {
     type: START_GAME
+  }
+}
+
+const nextWord = () => {
+  return {
+    type: NEXT_WORD
+  }
+}
+
+const toTitle = () => {
+  return {
+    type: TO_TITLE
+  }
+}
+
+const gameOver = (message) => {
+  return {
+    type: GAME_OVER,
+    message
   }
 }
 
@@ -56,9 +78,28 @@ const undo = () => {
 }
 
 const done = () => {
-  return {
-    type: DONE
+
+  let state = store.getState();
+  let solution = state.game.solution;
+  let proposedSolution = state.game.choosenLetters.map(letter => {
+    return letter.letter;
+  }).join('');
+
+  if(solution === proposedSolution) {
+
+    return {
+      type: NEW_WORD
+    }
+
+  } else {
+
+    return {
+      type: GAME_OVER,
+      message: 'Whoops! That was the wrong word!'
+    }
+
   }
+
 }
 
 const clearLetters = () => {
@@ -68,34 +109,124 @@ const clearLetters = () => {
 }
 
 const setPercentageElapsed = (percentageElapsed) => {
-  return {
-    type: SET_PERCENTAGE_ELAPSED,
-    percentageElapsed
+
+  if(percentageElapsed == 100) {
+
+    return {
+      type: GAME_OVER,
+      message: 'Whoops! You ran out of time!'
+    };
+
+  } else {
+
+    return {
+      type: SET_PERCENTAGE_ELAPSED,
+      percentageElapsed
+    }
+
   }
+
 }
 
+const getNewGameState = () => {
 
+  let { word, scrambledWord, hint } = getNextWord();
+  let availableLetters = scrambledWord.split('').map((letter, index) => {
+    return { id: index, letter: letter, choosen: false };
+  });
 
-let { word, scrambledWord, hint } = getNextWord();
-let availableLetters = scrambledWord.split('').map((letter, index) => {
-  return { id: index, letter: letter, choosen: false };
-});
+  return {
+    letters: availableLetters,
+    solution: word,
+    hint: hint,
+    choosenLetters: [],
+    percentageElapsed: 0,
+    hintShown: false,
+    startTime: Date.now(),
+    interval: null
+  };
 
-const defaultState = {
-  letters: availableLetters,
-  solution: word,
-  hint: hint,
-  choosenLetters: [],
-  percentageElapsed: 0,
-  hintShown: false
 }
 
-const reducer = (state = defaultState, action) => {
+const getPercentageElapsed = (startTime, nowTime) => {
+
+  let timeAllowed = 15;
+  let timeDifference = nowTime - startTime;
+  let secondsElapsed = timeDifference / 1000;
+  let percentageElapsed = clamp((secondsElapsed / timeAllowed) * 100, 0, 100);
+  return percentageElapsed;
+
+}
+
+const gameOverReducer = (state = null, action) => {
+
+  switch(action.type) {
+
+    case GAME_OVER:
+
+      return action.message;
+
+    default:
+
+      return state;
+
+  };
+
+};
+
+const pageReducer = (state = 'title', action) => {
+
   switch(action.type) {
 
     case START_GAME:
+    case NEW_WORD:
+
+      return 'game';
+
+    case TO_TITLE:
+
+      return 'title';
+
+    case GAME_OVER:
+
+      return 'gameOver';
+
+    default:
 
       return state;
+
+  };
+
+};
+
+const gameReducer = (state = null, action) => {
+  switch(action.type) {
+
+    case START_GAME:
+    case NEW_WORD:
+
+      if(state != null) {
+        clearInterval(state.interval);
+      };
+
+      let newGameState = getNewGameState();
+      newGameState.interval = setInterval(() => {
+
+        store.dispatch(setPercentageElapsed(getPercentageElapsed(newGameState.startTime, Date.now())));
+
+      }, 100);
+
+      return newGameState;
+
+    case TO_TITLE:
+
+      clearInterval(state.interval);
+      return null;
+
+    case GAME_OVER:
+
+      clearInterval(state.interval);
+      return null;
 
     case SET_PERCENTAGE_ELAPSED:
 
@@ -143,21 +274,6 @@ const reducer = (state = defaultState, action) => {
         return { ...state, letters: newLetters, choosenLetters: newChoosenLetters };
       }
 
-    case DONE:
-
-      let solution = state.solution;
-      let proposedSolution = state.choosenLetters.map(letter => {
-        return letter.letter;
-      }).join('');
-
-      if(solution === proposedSolution) {
-        //Done
-      } else {
-        //Not done
-      }
-
-      return state;
-
     case CLEAR_LETTERS:
 
       let newLetters = state.letters.map(letter => {
@@ -172,14 +288,27 @@ const reducer = (state = defaultState, action) => {
   }
 }
 
+const reducer = combineReducers({
+  page: pageReducer,
+  game: gameReducer,
+  gameOver: gameOverReducer
+});
+
 const store = createStore(reducer, applyMiddleware(logger));
 
 const mapStateToProps = (state) => {
-    return {
-      letters: state.letters.map(letter => {
-        return { ...letter, disabled: letter.choosen };
-      })
-    };
+    if (state.game!=null) {
+      return {
+        letters: state.game.letters.map(letter => {
+          return { ...letter, disabled: letter.choosen };
+        })
+      };
+    } else {
+      return {
+        letters: []
+      }
+    }
+
 };
 
 const mapDispatchToProps = (dispatch) => {
@@ -192,8 +321,14 @@ const mapDispatchToProps = (dispatch) => {
 
 const ConnectedLetterSelect = connect(mapStateToProps, mapDispatchToProps)(LetterSelect);
 const ConnectedChoosenLetters = connect((state) => {
-    return {
-      letters: state.choosenLetters
+    if(state.game != null) {
+      return {
+        letters: state.game.choosenLetters
+      }
+    } else {
+      return {
+        letters: []
+      }
     }
 }, null)(ChoosenLetters);
 
@@ -203,7 +338,7 @@ const UndoButton = ({ canUndo, undoClicked }) => {
 
 const ConnectedUndoButton = connect((state) => {
     return {
-      canUndo: state.choosenLetters.length > 0
+      canUndo: (state.game == null) ? false : state.game.choosenLetters.length > 0
     }
 }, (dispatch) => {
   return {
@@ -219,7 +354,7 @@ const ClearButton = ({ canClear, clearClicked }) => {
 
 const ConnectedClearButton = connect((state) => {
     return {
-      canClear: state.choosenLetters.length > 0
+      canClear: (state.game == null) ? false : state.game.choosenLetters.length > 0
     }
 }, (dispatch) => {
   return {
@@ -235,7 +370,7 @@ const DoneButton = ({ canBeDone, doneClicked }) => {
 
 const ConnectedDoneButton = connect((state) => {
     return {
-      canBeDone: state.choosenLetters.length === 9
+      canBeDone: (state.game == null) ? false : state.game.choosenLetters.length === 9
     }
 }, (dispatch) => {
   return {
@@ -251,7 +386,7 @@ const ShowHintButton = ({ showHint, showHintClicked }) => {
 
 const ConnectedShowHintButton = connect((state) => {
     return {
-      showHint: state.showHint
+      showHint: state.game.showHint
     }
 }, (dispatch) => {
   return {
@@ -263,27 +398,16 @@ const ConnectedShowHintButton = connect((state) => {
 
 const ConnectedTimer = connect((state) => {
     return {
-      percentageElapsed: state.percentageElapsed
+      percentageElapsed: state.game.percentageElapsed
     }
 }, null)(Timer);
 
 const ConnectedHint = connect((state) => {
   return {
-    hint: state.hint,
-    showHint: state.showHint
+    hint: state.game.hint,
+    showHint: state.game.showHint
   }
 }, null)(Hint);
-
-let startTime = Date.now();
-let interval = () => {
-  let timeAllowed = 30;
-  let timeDifference = Date.now() - startTime;
-  let secondsElapsed = timeDifference / 1000;
-  let percentageElapsed = clamp((secondsElapsed / timeAllowed) * 100, 0, 100);
-  store.dispatch(setPercentageElapsed(percentageElapsed));
-  window.requestAnimationFrame(interval);
-};
-interval();
 
 const Playing = () => {
 
@@ -319,7 +443,11 @@ const ConnectedTitle = connect(null, (dispatch) => {
     }
 }, null)(Title);
 
-const ConnectedGameOver = connect(null, (dispatch) => {
+const ConnectedGameOver = connect((state) => {
+  return {
+    message: (state.gameOver == null) ? '' : state.gameOver
+  }
+}, (dispatch) => {
     return {
       tryAgainClicked: () => {
         dispatch(startGame());
@@ -327,16 +455,28 @@ const ConnectedGameOver = connect(null, (dispatch) => {
     }
 }, null)(GameOver);
 
+const MainView = ({page}) => {
+  switch (page) {
+    case 'title':
+      return (<ConnectedTitle />);
+    case 'game':
+      return (<Playing />);
+    case 'gameOver':
+      return (<ConnectedGameOver />);
+  }
+}
+
+const ConnectedMainView = connect((state) => {
+  return {
+    page: state.page
+  }
+}, null)(MainView);
+
 class App extends Component {
   render() {
     return (
       <Provider store={store}>
-        <div>
-          <ConnectedTitle />
-          <ConnectedGameOver message="That was the wrong answer!" />
-          <ConnectedGameOver message="You ran out of time!" />
-          <Playing />
-        </div>
+        <ConnectedMainView />
       </Provider>
     );
   }
@@ -351,12 +491,15 @@ document.addEventListener('keydown', function(event) {
         store.dispatch(done());
     } else {
       let key = event.key.toUpperCase();
-      let letters = store.getState().letters;
-      let letterToChoose = letters.filter(letter => {
-        return letter.choosen === false && letter.letter === key;
-      })[0];
-      if(letterToChoose !== undefined) {
-        store.dispatch(chooseLetter(letterToChoose.id));
+      let game = store.getState().game;
+      if(game != null) {
+        let letters = game.letters;
+        let letterToChoose = letters.filter(letter => {
+          return letter.choosen === false && letter.letter === key;
+        })[0];
+        if(letterToChoose !== undefined) {
+          store.dispatch(chooseLetter(letterToChoose.id));
+        }
       }
     }
 });
