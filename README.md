@@ -1,13 +1,6 @@
 
-## Todo
+# Wordsmith
 
-- Need to add different states:
-  - Playing
-  - Success!
-  - Failed (wrong)
-  - Failed (timeout)
+Anagram solving game
 
-
-
-
-- Add [transitions]<https://dev.to/underdogio/adding-animations-to-your-react-app-with-react-transition-group>
+[Demo](https://robertbasden.github.io/wordsmith/)
