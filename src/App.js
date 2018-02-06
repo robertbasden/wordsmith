@@ -150,7 +150,7 @@ const getNewGameState = () => {
 
 const getPercentageElapsed = (startTime, nowTime) => {
 
-  let timeAllowed = 15;
+  let timeAllowed = 25;
   let timeDifference = nowTime - startTime;
   let secondsElapsed = timeDifference / 1000;
   let percentageElapsed = clamp((secondsElapsed / timeAllowed) * 100, 0, 100);
