@@ -1,7 +1,28 @@
 
-const scambleWord = word => {
-  return word.split('').reverse().join('');
-}
+/**
+ * Randomly shuffle letters of a word.
+ * Uses the Fisher-Yates shuffling algorithm.
+ *
+ * @param  {String} word - Word to be shuffled
+ * @return {String} Random ordering of letters
+ * @see  https://en.wikipedia.org/wiki/Fisher–Yates_shuffle
+ */
+export const scrambleWord = word => {
+  const wordArray = word.split('');
+  let idx = wordArray.length;
+
+  while( idx !== 0){
+    const rndIndex = Math.floor(idx * Math.random());
+
+    const tmpValue = wordArray[idx];
+    wordArray[idx] = wordArray[rndIndex];
+    wordArray[rndIndex] = tmpValue;
+
+    idx -= 1;
+  }
+
+  return wordArray.join('');
+};
 
 const getRandomWord = words => {
   return words[Math.floor(Math.random()*words.length)];
@@ -18,7 +39,7 @@ export const getNextWord = () => {
   let word = getRandomWord(words);
   return {
     word: word.word,
-    scrambledWord: scambleWord(word.word),
+    scrambledWord: scrambleWord(word.word),
     hint: word.hint
   }
 
