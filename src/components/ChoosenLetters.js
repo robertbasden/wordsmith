@@ -1,10 +1,10 @@
 import React from 'react';
 import { InstructionsContainer, LetterContainer, Letter } from '../glamorous';
 
-const ChoosenLetters = ({letters}) => {
+const ChoosenLetters = ({letters, availableLetters}) => {
 
   let letterElements = letters.map(letter => {
-    return (<Letter className="no-select" key={letter.id}><div>{letter.letter}</div></Letter>);
+    return (<Letter className="no-select" length={availableLetters.length} key={letter.id}><div>{letter.letter}</div></Letter>);
   });
 
   if(letterElements.length > 0) {

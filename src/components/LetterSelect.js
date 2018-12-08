@@ -9,7 +9,7 @@ const LetterSelection = ({ letters, letterClicked }) => {
 			id => { letterClicked(letter.id) }
 		);
     return (
-      <SelectableLetter disabled={letter.disabled} className="no-select" key={letter.id} onClick={() => clickHandler(letter.id)}><div>{letter.letter}</div></SelectableLetter>
+      <SelectableLetter disabled={letter.disabled} length={letters.length} className="no-select" key={letter.id} onClick={() => clickHandler(letter.id)}><div>{letter.letter}</div></SelectableLetter>
     );
   }));
 

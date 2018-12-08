@@ -60,9 +60,10 @@ const letterBaseStyles = {
   }
 };
 
-export const SelectableLetter = glamorous.div(({ disabled }) => {
+export const SelectableLetter = glamorous.div(({ disabled, length }) => {
 	return { ...letterBaseStyles,
     opacity: (disabled ? 0.5 : 1),
+    width: 'calc((100% - ('+length+' * 5px)) / '+length+')',
     transition: 'transform 0.1s linear, opacity 0.1s linear',
     ':hover': {
       transform: (disabled ? '' : 'scale(1.1)')
@@ -70,8 +71,9 @@ export const SelectableLetter = glamorous.div(({ disabled }) => {
   }
 });
 
-export const Letter = glamorous.div(() => {
-  return { ...letterBaseStyles };
+export const Letter = glamorous.div(({ length }) => {
+  return { ...letterBaseStyles ,
+    width: 'calc((100% - ('+length+' * 5px)) / '+length+')' };
 });
 
 export const ButtonSet = glamorous.div({

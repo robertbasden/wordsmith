@@ -323,7 +323,8 @@ const ConnectedLetterSelect = connect(mapStateToProps, mapDispatchToProps)(Lette
 const ConnectedChoosenLetters = connect((state) => {
     if(state.game != null) {
       return {
-        letters: state.game.choosenLetters
+        letters: state.game.choosenLetters,
+        availableLetters: state.game.letters
       }
     } else {
       return {
@@ -370,7 +371,7 @@ const DoneButton = ({ canBeDone, doneClicked }) => {
 
 const ConnectedDoneButton = connect((state) => {
     return {
-      canBeDone: (state.game == null) ? false : state.game.choosenLetters.length === 9
+      canBeDone: (state.game == null) ? false : (state.game.choosenLetters.length === state.game.letters.length)
     }
 }, (dispatch) => {
   return {
